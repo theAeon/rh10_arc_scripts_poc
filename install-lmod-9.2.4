@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check that SCRIPT_ROOT is set before continuing.
-[ -z $SCRIPT_ROOT ] && echo "
+[ -z "$SCRIPT_ROOT" ] && echo "
 You must export the variable SCRIPT_ROOT and set it to be the root of
 the build script repository directory structure to run build scripts
 " && exit 9
@@ -10,7 +10,7 @@ build_dir=/tmp/bennetsw/build
 if [ ! -d $build_dir ] ; then
     mkdir -p $build_dir
 fi
-cd $build_dir
+cd $build_dir || exit 1
 lmod_ver=9.2.4
 
 if [ -d lmod-$lmod_ver ] ; then
@@ -21,7 +21,7 @@ fi
 git clone https://github.com/TACC/Lmod.git lmod-$lmod_ver
 
 # Check out the right tag to a branch
-cd lmod-$lmod_ver
+cd lmod-$lmod_ver || exit 1
 git checkout tags/$lmod_ver -b $lmod_ver
 
 # Check the branch is OK, just 'cause
@@ -43,7 +43,7 @@ fi
 make pre-install
 
 # Change to the init directory for the new version
-cd /sw/lmod/$lmod_ver/init
+cd /sw/lmod/$lmod_ver/init || exit 1
 
 # Create the init/.modulespath file with the default paths in it
 # As of 23 August, 2018, only arcts trees are included.
@@ -81,7 +81,7 @@ diff cshrc.orig cshrc
 
 # Replace lmod/lmod in libexec/update_lmod_system_cache_files, too,
 #   so that proper testing of the spider caching will work.
-cd /sw/lmod/$lmod_ver/libexec
+cd /sw/lmod/$lmod_ver/libexec || exit 1
 sed -i.orig "s/lmod\/lmod/lmod\/$lmod_ver/g" update_lmod_system_cache_files
 diff update_lmod_system_cache_files.orig update_lmod_system_cache_files
 
@@ -203,7 +203,7 @@ export PATH=/sw/arc/usertools/bin:\${PATH}
 __EOF__
 
 # Go back and make install
-cd $build_dir/lmod-$lmod_ver
+cd $build_dir/lmod-$lmod_ver || exit 1
 make install
 
 # Create the first Lmod spider cache
@@ -211,13 +211,14 @@ make install
 # NOTE:  This doesn't work on first installation until something sets
 # BASE_MODULEPATH
 
+# shellcheck disable=SC1091
 source /sw/lmod/z11StdEnv.sh
 echo "MODULEPATH is $MODULEPATH"
 
 /sw/lmod/$lmod_ver/libexec/update_lmod_system_cache_files \
     -d /sw/lmod/cache/$lmod_ver \
     -t /sw/lmod/cache/$lmod_ver/cacheTS.txt \
-    $MODULEPATH
+    "$MODULEPATH"
 
 # Check the existence and modify time of the spider cache files
 ls -l /sw/lmod/cache/$lmod_ver
