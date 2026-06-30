@@ -1,0 +1,128 @@
+#!/bin/bash
+
+# Check that SCRIPT_ROOT is set before continuing.
+[ -z "$SCRIPT_ROOT" ] && echo "
+You must export the variable SCRIPT_ROOT and set it to be the root of
+the build script repository directory structure to run build scripts
+" && exit 9
+
+source "$SCRIPT_ROOT"/build.cfg
+
+# Clear any modules, load the right ones, print the list for the record
+module purge
+gcc --version
+
+# If this module is part of a module hierarchy, set up its installation
+# location in /sw/pkgs/arc/stacks/compiler/version/pkg/version
+# Should be "yes" or "no"
+STACKS="no"
+
+# Specify extension of the source file: tar.gz, tgz, gz, or bz2
+TAR_TYPE=tar.gz
+
+# Set compiler name
+export COMPILER_NAME=gcc
+
+# Set the COMPILERS and compiler FLAGS here for use with configure
+# CC, CXX, FC, F77, and F90 are set in build.cfg but can
+# be overriden here.  This may be a convenience, or redundant, but
+# we include it.
+# We only add compilers actually used here.
+
+# Due to the non-standard build script naming convention for compilers,
+# PKG_NAME and PKG_VER must be set here (rather than in build.cfg) and
+# the set_hierarchy function in build.cfg is skipped.
+export PKG_NAME="gcc"
+export PKG_VER="15.1.0"
+# The next steps set up the build directory, the install directory,
+# unpacks the tar ball, and turns it over to the package specific build
+# steps enumerated below.
+set_compilers
+make_prefix
+verify_src_archive
+# shellcheck disable=SC2119
+build_dir_setup
+
+# Set configure options here
+export CONFIG_OPTIONS="--mandir=${PREFIX}/share/man --enable-languages=c,c++,fortran --disable-multilib"
+
+echo "PWD is $PWD"
+echo "SRC_DIR is $SRC_DIR"
+echo "BUILD_DIR is $BUILD_DIR"
+echo "${BUILD_DIR}/${SRC_DIR}-build"
+echo "CONFIG_OPTIONS $CONFIG_OPTIONS"
+echo "COMPILERS ${COMPILERS}"
+
+confirm_settings
+
+###
+###  Put commands to configure and build your software in the section below
+###
+
+echo "Running configure and make from $PWD"
+
+# Download source for MPFR, GMP, and MPC to be built into gcc-15
+./contrib/download_prerequisites
+
+#  gcc needs to be built outside of source directory.
+if [ -d "${BUILD_DIR}"/"${SRC_DIR}"-build ] ; then
+    # Start with a freshly unpack source each and every time
+    rm -rf "${BUILD_DIR}"/"${SRC_DIR}"-build
+fi
+mkdir "${BUILD_DIR}"/"${SRC_DIR}"-build
+cd "${BUILD_DIR}"/"${SRC_DIR}"-build || exit 1
+
+echo "I am in $PWD"
+ls ../
+
+# Configure
+echo "Running configure with"
+echo ../"${SRC_DIR}"/configure --prefix="${PREFIX}" "${CONFIG_OPTIONS}" "${COMPILERS}"
+logfile=${PKG_NAME}-${PKG_VER}-config.log
+if ! ../"${SRC_DIR}"/configure --prefix="${PREFIX}" "${CONFIG_OPTIONS}" "${COMPILERS}" \
+    > ${logfile} 2>&1; then
+    echo "./configure returned a non-zero value.  Exiting"
+    exit 9
+fi
+# Copy the output configure wrote to STDOUT/STDERR in $logfile as well
+# as configure's config.log file.
+    cp ${logfile} "${LOG_DIR}"
+    cp config.log "${LOG_DIR}"/config.log
+
+# Print something indicate progress.  Silence is bad for the impatient.
+    echo
+    echo "[OK]    configure completed successfully"
+    echo "        configure output log file in ${LOG_DIR}/${logfile}"
+    echo "        configure log copied to ${LOG_DIR}/config.log"
+
+
+# We run make pretty much the same way every time, so function and
+# loop are good.  See build.cfg for the definition of make_type()
+# make_type will produce output for each type run.
+
+
+# Removed the "make, check, and install" for loop used in our template build script.
+# Fail on tversion check due to problems with GMP library incompatibilities after
+# building GCC 8x required the below workaround.
+
+our_make "-j 20"
+#cd mpfr/tests
+#make -k check
+cd "${BUILD_DIR}"/"${SRC_DIR}"-build || exit 1
+echo "$PWD"
+#our_make "-k 12 check"
+our_make install
+#  End modifications.
+
+echo "Copying build script to ${LOG_DIR}"
+cp -p "${MYNAME}" "${LOG_DIR}"
+echo
+
+echo "The following build logs were preserved"
+ls -l "$LOG_DIR"
+
+echo
+echo "All done building ${PKG_NAME}-${PKG_VER} ${label}"
+echo
+
+chmod -R g+w,a+Xr "${PREFIX}"
