@@ -1,5 +1,5 @@
-<%include file=".pkgInfo.lua.tmpl"/>
-<%include file="../compiler.tmpl"/>
+<%include file=".pkgInfo.lua.mako"/>
+<%include file="../compiler.mako"/>
 
 -- We put the version text in the module version file, other
 -- whatis text goes in .pkgInfo

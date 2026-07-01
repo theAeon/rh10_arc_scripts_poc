@@ -1,4 +1,4 @@
-<%include file="../base.tmpl"/>
+<%include file="../base.mako"/>
 
 -- set this as a compiler and add its modules to MODULEPATH
 family('compiler')

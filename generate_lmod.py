@@ -12,11 +12,11 @@ from mako.lookup import TemplateLookup
 
 
 def main() -> None:
-    modlist = glob.glob("**/*.lua.tmpl", recursive=True)
+    modlist = glob.glob("**/*.lua.mako", recursive=True)
     prefix_root = "/sw/arc/pkgs"
     dirs = TemplateLookup(directories=["./"])
     for pathstr in modlist:
-        pathpath = pathlib.Path(pathstr[:-5])  # remove .tmpl suffix
+        pathpath = pathlib.Path(pathstr[:-5])  # remove .mako suffix
         program_ver = pathpath.stem
         program_name = pathpath.parent.stem
         base = Template(filename=pathstr, lookup=dirs)
