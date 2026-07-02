@@ -1,8 +1,7 @@
 -- local variables to be used inside the module file
 local installDir   = "${root}/${name}/${ver}"
 local app          = "${name}"
-
-setenv('C_INCLUDEPATH', pathJoin(installDir,"include"))
+whatis("Version: ${ver}")
 
 -- general system variables
 prepend_path('PATH',            pathJoin(installDir,"bin"))

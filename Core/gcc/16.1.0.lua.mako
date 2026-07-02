@@ -1,10 +1,6 @@
 <%include file=".pkgInfo.lua.mako"/>
 <%include file="../compiler.mako"/>
 
--- We put the version text in the module version file, other
--- whatis text goes in .pkgInfo
-whatis("Version: ${ver}")
-
 
 -- compile and link flag variables
 setenv('GCC_ROOT',    installDir)
@@ -17,3 +13,4 @@ prepend_path('CPATH',           pathJoin(installDir,"/lib/gcc/x86_64-pc-linux-gn
 setenv('CC',  pathJoin(installDir,"bin", "gcc"))
 setenv('CXX', pathJoin(installDir,"bin", "g++"))
 setenv('FC',  pathJoin(installDir,"bin", "gfortran"))
+setenv('C_INCLUDEPATH', pathJoin(installDir,"include"))
